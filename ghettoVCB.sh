@@ -261,7 +261,7 @@ sanityCheck() {
     esac
 
     NEW_VIMCMD_SNAPSHOT="no"
-    ${VMWARE_CMD} vmsvc/snapshot.remove 2>&1 | grep -q "snapshotId"
+    ${VMWARE_CMD} vmsvc/snapshot.remove 2>&1 | grep "snapshotId" > /dev/null
     [[ $? -eq 0 ]] && NEW_VIMCMD_SNAPSHOT="yes"
 
     if [[ "${EMAIL_LOG}" -eq 1 ]] && [[ -f /usr/bin/nc ]] || [[ -f /bin/nc ]]; then
@@ -782,7 +782,7 @@ ghettoVCB() {
         IFS2="${IFS}"
         IFS=","
         for VM_NAME in ${VM_SHUTDOWN_ORDER}; do
-            VM_ID=$(grep -E "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $1}' | sed 's/"//g')
+            VM_ID=$(grep -e "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $1}' | sed 's/"//g')
             powerOff "${VM_NAME}" "${VM_ID}"
             if [[ ${POWER_OFF_EC} -eq 1 ]]; then
                 logger "debug" "Error unable to shutdown VM ${VM_NAME}\n"
@@ -802,7 +802,7 @@ ghettoVCB() {
             fi
         fi
 
-        VM_ID=$(grep -E "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $1}' | sed 's/"//g')
+        VM_ID=$(grep -e "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $1}' | sed 's/"//g')
 
         #ensure default value if one is not selected or variable is null
         if [[ -z ${VM_BACKUP_DIR_NAMING_CONVENTION} ]] ; then
@@ -814,8 +814,8 @@ ghettoVCB() {
             dumpVMConfigurations
         fi
 
-        VMFS_VOLUME=$(grep -E "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $3}' | sed 's/\[//;s/\]//;s/"//g')
-        VMX_CONF=$(grep -E "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $4}' | sed 's/\[//;s/\]//;s/"//g')
+        VMFS_VOLUME=$(grep -e "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $3}' | sed 's/\[//;s/\]//;s/"//g')
+        VMX_CONF=$(grep -e "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $4}' | sed 's/\[//;s/\]//;s/"//g')
         VMX_PATH="/vmfs/volumes/${VMFS_VOLUME}/${VMX_CONF}"
         VMX_DIR=$(dirname "${VMX_PATH}")
 
@@ -933,7 +933,7 @@ ghettoVCB() {
             RSYNC_LINK_DIR="./${VM_NAME}-${VM_BACKUP_DIR_NAMING_CONVENTION}"
 
             # Do indexed rotation if naming convention is set for it
-            if [[ ${VM_BACKUP_DIR_NAMING_CONVENTION} = "0" ]]; then
+            if [[ ${VM_BACKUP_DIR_NAMING_CONVENTION} == "0" ]]; then
                 indexedRotate "${BACKUP_DIR}" "${VM_NAME}"
             fi
 
@@ -1207,7 +1207,7 @@ ghettoVCB() {
         logger "debug" "VM Startup Order: ${VM_STARTUP_ORDER}\n"
         IFS=","
         for VM_NAME in ${VM_STARTUP_ORDER}; do
-            VM_ID=$(grep -E "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $1}' | sed 's/"//g')
+            VM_ID=$(grep -e "\"${VM_NAME}\"" ${WORKDIR}/vms_list | awk -F ";" '{print $1}' | sed 's/"//g')
             powerOn "${VM_NAME}" "${VM_ID}"
             if [[ ${POWER_ON_EC} -eq 1 ]]; then
                 logger "info" "Unable to detect fully powered on VM ${VM_NAME}\n"
@@ -1281,12 +1281,14 @@ buildHeaders() {
 sendMail() {
     #close email message
     if [[ "${EMAIL_LOG}" -eq 1 ]] ; then
-        #validate firewall has email port open for ESXi 5
-        if [[ "${VER}" == "5" ]] ; then
-            /sbin/esxcli network firewall ruleset rule list | grep "${EMAIL_SERVER_PORT}" > /dev/null 2>&1
-            if [[ $? -eq 1 ]] ; then
-                logger "info" "ERROR: Please enable firewall rule for email traffic on port ${EMAIL_SERVER_PORT}\n"
-                logger "info" "Please refer to ghettoVCB documentation for ESXi 5 firewall configuration\n"
+        if /sbin/esxcli network firewall get | grep "Enabled" | grep -q "true" > /dev/null 2>&1; then
+            #validate firewall has email port open for ESXi 5
+            if [[ "${VER}" == "5" ]] ; then
+                /sbin/esxcli network firewall ruleset rule list | grep "${EMAIL_SERVER_PORT}" > /dev/null 2>&1
+                if [[ $? -eq 1 ]] ; then
+                    logger "info" "ERROR: Please enable firewall rule for email traffic on port ${EMAIL_SERVER_PORT}\n"
+                    logger "info" "Please refer to ghettoVCB documentation for ESXi 5 firewall configuration\n"
+                fi
             fi
         fi
 
