@@ -251,14 +251,19 @@ sanityCheck() {
         exit 1
     fi
 
-    ESX_VERSION=$(vmware -v | awk '{print $3}')
+    # determine ESX(i) version - Need to keep it generic due to difference in 3.5
+    ESX_VERSION=$(vmware -v)
 
-    case "${ESX_VERSION}" in
-        5.0.0|5.1.0)    VER=5; break;;
-        4.0.0|4.1.0)    VER=4; break;;
-        3.5.0|3i)       VER=3; break;;
-        *)              echo "You're not running ESX(i) 3.5, 4.x, 5.x!"; exit 1; break;;
-    esac
+    if echo "${ESX_VERSION}" | grep -E '5.0.0|5.1.0' > /dev/null 2>&1; then
+        VER=5
+    elif echo "${ESX_VERSION}" | grep -E '4.0.0|4.1.0' > /dev/null 2>&1; then
+        VER=4
+    elif echo "${ESX_VERSION}" | grep '3.5.0' > /dev/null 2>&1; then
+        VER=3
+    else
+        echo "You're not running ESX(i) 3.5, 4.x, 5.x!"
+        exit 1
+    fi
 
     NEW_VIMCMD_SNAPSHOT="no"
     ${VMWARE_CMD} vmsvc/snapshot.remove 2>&1 | grep "snapshotId" > /dev/null
