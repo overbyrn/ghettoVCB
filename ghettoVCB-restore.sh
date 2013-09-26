@@ -159,6 +159,13 @@ ghettoVCBrestore() {
         fi
 
         #supports DIR or .TGZ from ghettoVCB.sh ONLY!
+
+        if [ ${VM_TO_RESTORE##*.} == 'gz' ]; then
+         logger "GZ found, extracting ..."
+         ${TAR} -xzf $VM_TO_RESTORE -C ${VM_TO_RESTORE%/*}
+         VM_TO_RESTORE=${VM_TO_RESTORE%.*}
+        fi
+
         if [ -d "${VM_TO_RESTORE}" ]; then
             #figure out the contents of the directory (*.vmdk,*-flat.vmdk,*.vmx)
             VM_ORIG_VMX=$(ls "${VM_TO_RESTORE}" | grep ".vmx")
@@ -171,8 +178,8 @@ ghettoVCBrestore() {
                 VM_DISPLAY_NAME=$(grep -i "displayName" "${VM_TO_RESTORE}/${VM_ORIG_VMX}" | awk -F '=' '{print $2}' | sed 's/"//g' | sed -e 's/^[[:blank:]]*//;s/[[:blank:]]*$//')
                 VM_ORIG_FOLDER_NAME=$(echo "${VM_FOLDER_NAME}" | sed 's/-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-1].*//g')
                 VM_VMX_NAME=${VM_ORIG_VMX}
-		VM_RESTORE_FOLDER_NAME=${VM_ORIG_FOLDER_NAME}
-		VM_RESTORE_VMX=${VM_ORIG_VMX}
+                VM_RESTORE_FOLDER_NAME=${VM_ORIG_FOLDER_NAME}
+                VM_RESTORE_VMX=${VM_ORIG_VMX}
             else
                 VM_DISPLAY_NAME=${RESTORE_VM_NAME}
                 VM_RESTORE_FOLDER_NAME=${RESTORE_VM_NAME}
@@ -251,14 +258,14 @@ if [ ! "${IS_TGZ}" == "1" ]; then
             logger "ERROR: Unable to verify datastore locateion: \"${DATASTORE_TO_RESTORE_TO}\"! Ensure this exists"
             #validates that all 4 required variables are defined before continuing 
 
-        elif [[ -z "${VM_RESTORE_VMX}" ]] && [[ -z "${VM_VMDK_DESCRS}" ]] && [[ -z "${VM_DISPLAY_NAME}" ]] && [[ -z "${VM_RESTORE_FOLDER_NAME}" ]]; then			     	    
-            logger "ERROR: Unable to define all required variables: VM_RESTORE_VMX, VM_VMDK_DESCR and VM_DISPLAY_NAME!"	
+        elif [[ -z "${VM_RESTORE_VMX}" ]] && [[ -z "${VM_VMDK_DESCRS}" ]] && [[ -z "${VM_DISPLAY_NAME}" ]] && [[ -z "${VM_RESTORE_FOLDER_NAME}" ]]; then                         
+            logger "ERROR: Unable to define all required variables: VM_RESTORE_VMX, VM_VMDK_DESCR and VM_DISPLAY_NAME!"    
             #validates that a directory with the same VM does not already exists
 
         elif [ -d "${DATASTORE_TO_RESTORE_TO}/${VM_RESTORE_FOLDER_NAME}" ]; then
             logger "ERROR: Directory \"${DATASTORE_TO_RESTORE_TO}/${VM_RESTORE_FOLDER_NAME}\" looks like it already exists, please check contents and remove directory before trying to restore!" 
 
-        else		
+        else        
             logger "################## Restoring VM: $VM_DISPLAY_NAME  #####################"
             if [ "${DEVEL_MODE}" == "2" ]; then
                 logger "==========> DEBUG MODE LEVEL 2 ENABLED <=========="
@@ -272,7 +279,7 @@ if [ ! "${IS_TGZ}" == "1" ]; then
 
             #create VM folder on datastore if it doesn't already exists
             logger "Creating VM directory: \"${VM_RESTORE_DIR}\" ..."
-            if [ ! "${DEVEL_MODE}" == "2" ]; then	
+            if [ ! "${DEVEL_MODE}" == "2" ]; then    
                 mkdir -p "${VM_RESTORE_DIR}"
             fi
 
@@ -346,7 +353,7 @@ if [ ! "${IS_TGZ}" == "1" ]; then
                 fi
             done
             unset IFS
-            IFS="${OLD_IFS}"				
+            IFS="${OLD_IFS}"                
 
             #register VM on ESX(i) host
             logger "Registering $VM_DISPLAY_NAME ..."
@@ -363,7 +370,7 @@ fi
 
 VMDK_LIST_TO_MODIFY=''
     done
-    unset IFS	
+    unset IFS    
 
     endTimer
 }
